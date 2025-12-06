@@ -1,6 +1,6 @@
 # Hierarchical Clustering with LSI for Dynamic Web IR
 
-# Video Link : 
+# Video Link : https://drive.google.com/file/d/1h-OqcYz32YjH1MtTONJbX3SdEGv8O8HH/view?usp=drive_link
 # PPT Link : https://docs.google.com/presentation/d/1TJYsAmc5gp-mc0npoHJuBsg0cvgEjkhw/edit?usp=drive_link&ouid=107440143598979638054&rtpof=true&sd=true
 
 A comprehensive Information Retrieval system that organizes documents into hierarchical topic clusters using Latent Semantic Indexing (LSI) and Hierarchical Agglomerative Clustering (HAC).
