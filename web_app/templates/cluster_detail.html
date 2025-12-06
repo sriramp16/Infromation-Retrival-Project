@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+
+{% block title %}Cluster {{ cluster_id }} - IR System{% endblock %}
+
+{% block extra_head %}
+<style>
+    .cluster-header-detail {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 2rem;
+        border-radius: 10px;
+        margin-bottom: 2rem;
+    }
+    .doc-card {
+        background: white;
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        padding: 1.5rem;
+        margin-bottom: 1rem;
+        transition: all 0.2s ease;
+    }
+    .doc-card:hover {
+        border-color: #007bff;
+        box-shadow: 0 2px 8px rgba(0,123,255,0.1);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="cluster-header-detail">
+    <h1>Topic Cluster {{ cluster_id }}</h1>
+    <p class="mb-0">Found {{ documents|length }} documents in this cluster</p>
+</div>
+
+<div class="row">
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-header">
+                <h5>Top Terms</h5>
+            </div>
+            <div class="card-body">
+                <ul class="list-unstyled">
+                    {% for term in top_terms %}
+                    <li class="mb-2">
+                        <span class="badge bg-primary">{{ term }}</span>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+        
+        <div class="card mt-3">
+            <div class="card-header">
+                <h5>Actions</h5>
+            </div>
+            <div class="card-body">
+                <a href="/clusters" class="btn btn-outline-primary btn-sm w-100">
+                    ← Back to Clusters
+                </a>
+                <a href="/" class="btn btn-outline-secondary btn-sm w-100 mt-2">
+                    🏠 Home
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-9">
+        <h3 class="mb-3">Documents in This Cluster</h3>
+        
+        {% for doc in documents %}
+        <div class="doc-card">
+            <h5>{{ doc.title }}</h5>
+            <p class="text-muted">{{ doc.content }}</p>
+            <div class="d-flex justify-content-between align-items-center">
+                <small class="text-muted">Document ID: {{ doc.id }}</small>
+                <a href="/?q={{ doc.title }}" class="btn btn-sm btn-outline-primary">
+                    Search similar
+                </a>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
+

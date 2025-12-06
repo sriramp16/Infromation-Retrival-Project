@@ -1,0 +1,229 @@
+{% extends "base.html" %}
+
+{% block title %}Upload Document - IR System{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-10">
+            <h1 class="mb-4">📤 Upload Document for Processing</h1>
+            
+            <div class="card shadow mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Upload File</h5>
+                </div>
+                <div class="card-body">
+                    <form id="uploadForm" enctype="multipart/form-data">
+                        <div class="mb-3">
+                            <label for="file" class="form-label">Select Document File</label>
+                            <input type="file" class="form-control" id="file" name="file" 
+                                   accept=".txt,.text,.md,.pdf" required>
+                            <small class="form-text text-muted">
+                                Supported formats: .txt, .md, .text, .pdf (PDF extraction optimized for newspapers)
+                            </small>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="title" class="form-label">Document Title (Optional)</label>
+                            <input type="text" class="form-control" id="title" name="title" 
+                                   placeholder="Leave empty to use filename">
+                            <small class="form-text text-muted">
+                                If not provided, the filename will be used as the title
+                            </small>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary w-100" id="submitBtn">
+                            📤 Upload and Process Document
+                        </button>
+                    </form>
+                    
+                    <!-- Status -->
+                    <div id="status" class="alert mt-3" style="display: none;"></div>
+                </div>
+            </div>
+            
+            <!-- Processing Steps -->
+            <div id="processingSteps" class="card shadow" style="display: none;">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">⏳ Processing in Progress...</h5>
+                </div>
+                <div class="card-body text-center">
+                    <div class="spinner-border text-primary mb-3" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="text-muted">Your document is being processed. Please wait...</p>
+                </div>
+            </div>
+            
+            <!-- Results -->
+            <div id="results" class="mt-4"></div>
+        </div>
+    </div>
+</div>
+
+<style>
+.step {
+    margin-bottom: 20px;
+    padding: 10px;
+    border-left: 3px solid #ddd;
+    padding-left: 15px;
+}
+.step.active {
+    border-left-color: #0d6efd;
+    background-color: #f0f7ff;
+}
+.step.completed {
+    border-left-color: #198754;
+    background-color: #f0fff4;
+}
+.step-content {
+    margin-top: 10px;
+    font-size: 0.9em;
+}
+</style>
+
+<script>
+document.getElementById('uploadForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const fileInput = document.getElementById('file');
+    const titleInput = document.getElementById('title');
+    const statusDiv = document.getElementById('status');
+    const submitBtn = document.getElementById('submitBtn');
+    const processingDiv = document.getElementById('processingSteps');
+    const resultsDiv = document.getElementById('results');
+    
+    if (!fileInput.files || !fileInput.files[0]) {
+        alert('Please select a file');
+        return;
+    }
+    
+    // Reset UI
+    resultsDiv.innerHTML = '';
+    processingDiv.style.display = 'block';
+    submitBtn.disabled = true;
+    submitBtn.textContent = '⏳ Processing...';
+    statusDiv.style.display = 'block';
+    statusDiv.className = 'alert alert-info';
+    statusDiv.textContent = 'Uploading and processing document...';
+    
+    // Create form data
+    const formData = new FormData();
+    formData.append('file', fileInput.files[0]);
+    if (titleInput.value.trim()) {
+        formData.append('title', titleInput.value.trim());
+    }
+    
+    // Upload and process with timeout
+    const uploadPromise = fetch('/api/upload_document', {
+        method: 'POST',
+        body: formData
+    });
+    
+    // Set 30 second timeout
+    const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Upload timeout: took more than 30 seconds')), 30000)
+    );
+    
+    Promise.race([uploadPromise, timeoutPromise])
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                statusDiv.className = 'alert alert-danger';
+                statusDiv.textContent = 'Error: ' + data.error;
+                submitBtn.disabled = false;
+                submitBtn.textContent = '📤 Upload and Process Document';
+                processingDiv.style.display = 'none';
+                return;
+            }
+            
+            // Hide loading spinner
+            processingDiv.style.display = 'none';
+            
+            // Show results
+            statusDiv.className = 'alert alert-success';
+            statusDiv.textContent = '✅ Document processed successfully!';        // Display results
+        resultsDiv.innerHTML = `
+            <div class="card shadow">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">📊 Processing Results</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>Document Information</h6>
+                            <ul class="list-unstyled">
+                                <li><strong>Title:</strong> ${data.document.title || 'N/A'}</li>
+                                <li><strong>File Type:</strong> ${data.document.file_type ? data.document.file_type.toUpperCase() : 'TEXT'}</li>
+                                ${data.document.pdf_pages ? `<li><strong>PDF Pages:</strong> ${data.document.pdf_pages}</li>` : ''}
+                                <li><strong>Content Length:</strong> ${data.preprocessing.original_length.toLocaleString()} characters</li>
+                                <li><strong>Tokens:</strong> ${data.preprocessing.num_tokens.toLocaleString()}</li>
+                                <li><strong>Unique Terms:</strong> ${data.preprocessing.unique_terms.toLocaleString()}</li>
+                                <li><strong>Assigned Cluster:</strong> Cluster ${data.clustering.cluster_id}</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Evaluation Metrics</h6>
+                            <ul class="list-unstyled">
+                                <li><strong>Silhouette Score:</strong> ${data.evaluation.silhouette_score.toFixed(4)}</li>
+                                <li><strong>Davies-Bouldin Index:</strong> ${data.evaluation.davies_bouldin_index.toFixed(4)}</li>
+                                <li><strong>Calinski-Harabasz:</strong> ${data.evaluation.calinski_harabasz_index.toFixed(2)}</li>
+                                <li><strong>Total Documents:</strong> ${data.evaluation.total_documents}</li>
+                                <li><strong>Total Clusters:</strong> ${data.evaluation.n_clusters}</li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <hr>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>LSI Information</h6>
+                            <ul class="list-unstyled">
+                                <li><strong>LSI Dimensions:</strong> ${data.lsi.n_topics}</li>
+                                <li><strong>LSI Vector Shape:</strong> (${data.lsi.vector_shape.join(', ')})</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Preprocessing Details</h6>
+                            <ul class="list-unstyled">
+                                <li><strong>Stemming:</strong> ${data.preprocessing.use_stemming ? 'Yes' : 'No'}</li>
+                                <li><strong>Stop Words Removed:</strong> ${data.preprocessing.stopwords_removed}</li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    ${data.preprocessing.top_tokens.length > 0 ? `
+                    <hr>
+                    <h6>Top Tokens (after preprocessing)</h6>
+                    <div class="mb-2">
+                        ${data.preprocessing.top_tokens.slice(0, 20).map(token => 
+                            `<span class="badge bg-secondary me-1">${token}</span>`
+                        ).join('')}
+                    </div>
+                    ` : ''}
+                    
+                    <hr>
+                    <div class="text-center">
+                        <a href="/" class="btn btn-primary me-2">🔍 Search Documents</a>
+                        <a href="/clusters" class="btn btn-outline-primary">📊 View Clusters</a>
+                        <a href="/analytics" class="btn btn-outline-primary">📈 View Analytics</a>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        submitBtn.disabled = false;
+        submitBtn.textContent = '📤 Upload and Process Document';
+    })
+    .catch(error => {
+        statusDiv.className = 'alert alert-danger';
+        statusDiv.textContent = 'Error: ' + error.message;
+        console.error('Upload error:', error);
+        submitBtn.disabled = false;
+        submitBtn.textContent = '📤 Upload and Process Document';
+    });
+});
+</script>
+{% endblock %}
+

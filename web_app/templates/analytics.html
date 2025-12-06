@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+
+{% block title %}Analytics - IR System{% endblock %}
+
+{% block extra_head %}
+<style>
+    .metric-card {
+        background: white;
+        border: 1px solid #dee2e6;
+        border-radius: 10px;
+        padding: 1.5rem;
+        margin: 1rem 0;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .metric-value {
+        font-size: 2.5rem;
+        font-weight: bold;
+        color: #007bff;
+    }
+    .progress-custom {
+        height: 25px;
+        border-radius: 5px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+    <h1 class="display-5">📊 Analytics Dashboard</h1>
+    <p class="lead text-muted">System performance and quality metrics</p>
+</div>
+
+<!-- Metrics -->
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="metric-card text-center">
+            <h3 class="text-muted">Silhouette Score</h3>
+            <div class="metric-value">{{ "%.3f"|format(metrics.silhouette_score) }}</div>
+            <p class="text-muted mt-2 mb-0">
+                <small>Range: -1 (bad) to +1 (good)</small>
+            </p>
+            {% if metrics.silhouette_score > 0.3 %}
+            <span class="badge bg-success mt-2">Good Quality</span>
+            {% elif metrics.silhouette_score > 0 %}
+            <span class="badge bg-warning mt-2">Fair Quality</span>
+            {% else %}
+            <span class="badge bg-danger mt-2">Poor Quality</span>
+            {% endif %}
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="metric-card text-center">
+            <h3 class="text-muted">Davies-Bouldin</h3>
+            <div class="metric-value">{{ "%.3f"|format(metrics.davies_bouldin_index) }}</div>
+            <p class="text-muted mt-2 mb-0">
+                <small>Lower is better</small>
+            </p>
+            {% if metrics.davies_bouldin_index < 1.0 %}
+            <span class="badge bg-success mt-2">Good Separation</span>
+            {% else %}
+            <span class="badge bg-warning mt-2">Fair Separation</span>
+            {% endif %}
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="metric-card text-center">
+            <h3 class="text-muted">Calinski-Harabasz</h3>
+            <div class="metric-value">{{ "%.1f"|format(metrics.calinski_harabasz_index) }}</div>
+            <p class="text-muted mt-2 mb-0">
+                <small>Higher is better</small>
+            </p>
+            {% if metrics.calinski_harabasz_index > 50 %}
+            <span class="badge bg-success mt-2">High Density</span>
+            {% else %}
+            <span class="badge bg-warning mt-2">Fair Density</span>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Cluster Distribution -->
+<div class="card mb-4">
+    <div class="card-header bg-primary text-white">
+        <h4 class="mb-0">📊 Cluster Size Distribution</h4>
+    </div>
+    <div class="card-body">
+        <p>Total Documents: <strong>{{ total_docs }}</strong></p>
+        <div class="row">
+            {% for cluster in cluster_breakdown %}
+            <div class="col-md-3 mb-3">
+                <div class="card">
+                    <div class="card-body text-center">
+                        <h2 class="text-primary mb-2">{{ cluster.size }}</h2>
+                        <p class="mb-0">Cluster {{ cluster.cluster_id }}</p>
+                        <div class="progress progress-custom mt-2">
+                            {% set percentage = (cluster.size / total_docs * 100)|round %}
+                            <div class="progress-bar" role="progressbar" style="width: {{ percentage }}%">
+                                {{ percentage }}%
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<!-- Explanation -->
+<div class="alert alert-info">
+    <h5>📖 Understanding These Metrics</h5>
+    <ul class="mb-0">
+        <li><strong>Silhouette Score:</strong> Measures how similar documents are to their own cluster vs other clusters</li>
+        <li><strong>Davies-Bouldin Index:</strong> Measures the average similarity ratio between clusters</li>
+        <li><strong>Calinski-Harabasz Index:</strong> Ratio of between-cluster to within-cluster variance</li>
+    </ul>
+</div>
+
+<div class="text-center mt-4">
+    <a href="/" class="btn btn-primary">🔍 Back to Search</a>
+    <a href="/clusters" class="btn btn-outline-primary">📂 View Clusters</a>
+</div>
+{% endblock %}
+

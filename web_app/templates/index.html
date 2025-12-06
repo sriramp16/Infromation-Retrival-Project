@@ -1,0 +1,161 @@
+{% extends "base.html" %}
+
+{% block title %}Search - IR System{% endblock %}
+
+{% block extra_head %}
+<style>
+    .search-container {
+        max-width: 900px;
+        margin: 2rem auto;
+    }
+    .stats-card {
+        background: #4a90e2;
+        color: white;
+        border-radius: 4px;
+        padding: 1.5rem;
+        margin-bottom: 1rem;
+    }
+    .stats-card.pink {
+        background: #e24a90;
+    }
+    .stats-card.blue {
+        background: #4ae2e2;
+    }
+    .search-results {
+        margin-top: 2rem;
+    }
+    .result-card {
+        border-left: 3px solid #4a90e2;
+        padding: 1rem;
+        margin-bottom: 1rem;
+        background: white;
+        border-radius: 3px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="search-container">
+    <div class="mb-4">
+        <h2>Document Search</h2>
+        <p class="text-muted">Search through documents using LSI-based semantic search</p>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="stats-card text-center">
+                <h4>{{ stats.total_docs }}</h4>
+                <p class="mb-0">Documents</p>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="stats-card pink text-center">
+                <h4>{{ stats.n_clusters }}</h4>
+                <p class="mb-0">Clusters</p>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="stats-card blue text-center">
+                <h4>{{ stats.n_topics }}</h4>
+                <p class="mb-0">LSI Topics</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-body">
+            <form id="searchForm">
+                <div class="row g-2 mb-2">
+                    <div class="col-md-7">
+                        <input type="text" class="form-control" id="query" placeholder="Search query..." autofocus>
+                    </div>
+                    <div class="col-md-3">
+                        <select class="form-select" id="categoryFilter">
+                            <option value="">All Categories</option>
+                            <option value="Politics">Politics</option>
+                            <option value="Sports">Sports</option>
+                            <option value="Technology">Technology</option>
+                            <option value="Health">Health</option>
+                            <option value="Business">Business</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <button class="btn btn-primary w-100" type="submit">Search</button>
+                    </div>
+                </div>
+                <small class="text-muted">Examples: "artificial intelligence", "sports", "politics"</small>
+            </form>
+        </div>
+    </div>
+
+    <div id="loading" class="text-center mt-3" style="display: none;">
+        <p>Searching...</p>
+    </div>
+
+    <div id="results" class="search-results"></div>
+</div>
+
+<script>
+const searchForm = document.getElementById('searchForm');
+const queryInput = document.getElementById('query');
+const categoryFilter = document.getElementById('categoryFilter');
+const loading = document.getElementById('loading');
+const resultsDiv = document.getElementById('results');
+
+searchForm.addEventListener('submit', function(e) {
+    e.preventDefault();
+    const query = queryInput.value.trim();
+    
+    if (!query) {
+        alert('Please enter a search query');
+        return;
+    }
+    
+    // Show loading
+    loading.style.display = 'block';
+    resultsDiv.innerHTML = '';
+    
+    // Build API URL with category filter
+    let apiUrl = `/api/search?q=${encodeURIComponent(query)}&k=10`;
+    const selectedCategory = categoryFilter.value;
+    if (selectedCategory) {
+        apiUrl += `&category=${encodeURIComponent(selectedCategory)}`;
+    }
+    
+    // Perform search
+    fetch(apiUrl)
+        .then(response => response.json())
+        .then(data => {
+            loading.style.display = 'none';
+            displayResults(data, selectedCategory);
+        })
+        .catch(error => {
+            loading.style.display = 'none';
+            resultsDiv.innerHTML = '<div class="alert alert-danger">Error: ' + error + '</div>';
+        });
+});
+
+function displayResults(data, categoryFilter) {
+    if (!data.results || data.results.length === 0) {
+        resultsDiv.innerHTML = '<div class="alert alert-info">No results found. Try different keywords.</div>';
+        return;
+    }
+    
+    let html = '<h4 class="mt-4 mb-3">Results for "' + data.query + '" (' + data.results.length + ' found)</h4>';
+    
+    data.results.forEach(result => {
+        const categoryBadge = result.category ? '<span class="badge bg-success me-1">' + result.category + '</span>' : '';
+        const topicBadge = result.cluster !== null ? '<span class="badge bg-secondary me-1">Topic ' + result.cluster + '</span>' : '';
+        html += '<div class="result-card">';
+        html += '<h5>' + result.title + '</h5>';
+        html += '<div class="mb-2">' + categoryBadge + topicBadge + '<span class="badge bg-primary">Score: ' + result.score + '</span></div>';
+        html += '<p class="text-muted">' + result.content + '</p>';
+        html += '</div>';
+    });
+    
+    resultsDiv.innerHTML = html;
+}
+</script>
+{% endblock %}
+
