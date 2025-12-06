@@ -177,17 +177,6 @@ See `requirements.txt` for complete list.
 - BeautifulSoup (web scraping)
 - Docker (containerization)
 
-## License
-
-Educational project for Information Retrieval course.
-
-## Getting Help
-
-1. Check `PROJECT_OVERVIEW.md` for detailed specifications
-2. See `README_WEB_APP.md` for web app instructions
-3. Run examples in `examples/` directory
-4. Use `python main.py` for interactive help
-
 ---
 
 **Ready to use!** Start with `python web_app/app.py` or `python main.py` 🚀
